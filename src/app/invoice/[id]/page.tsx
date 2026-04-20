@@ -16,6 +16,9 @@ import { InvoiceItemsTable } from '@/components/invoice/invoice-items-table'
 import { InvoiceSummary } from '@/components/invoice/invoice-summary'
 import { InvoiceActions } from '@/components/invoice/invoice-actions'
 
+// 페이지 수준 캐시 재검증 주기: 5분(300초)
+export const revalidate = 300
+
 // 페이지 파라미터 타입 정의
 interface InvoicePageProps {
   params: Promise<{ id: string }>
@@ -29,9 +32,21 @@ export async function generateMetadata({
   try {
     const invoice = await getInvoiceById(id)
     if (!invoice) return { title: '견적서를 찾을 수 없음' }
+    const title = `${invoice.invoiceNumber} - ${invoice.client.companyName || invoice.title}`
+    const description = `${invoice.client.companyName || ''} 견적서를 조회하고 PDF로 다운로드하세요.`
     return {
-      title: `${invoice.invoiceNumber} - ${invoice.title}`,
-      description: '견적서를 조회하고 PDF로 다운로드하세요.',
+      title,
+      description,
+      openGraph: {
+        title,
+        description,
+        type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+      },
     }
   } catch {
     return { title: '견적서 오류' }
@@ -97,8 +112,11 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
         </div>
       </header>
 
-      {/* 메인 컨텐츠 */}
-      <main className="container mx-auto max-w-4xl px-4 py-8 pb-24 sm:px-6 lg:px-8">
+      {/* 메인 컨텐츠: aria-label로 스크린리더에게 영역 목적 전달 */}
+      <main
+        className="container mx-auto max-w-4xl px-4 py-8 pb-24 sm:px-6 lg:px-8"
+        aria-label="견적서 내용"
+      >
         <div className="space-y-6">
           {/* 견적서 헤더 (번호, 제목, 상태, 날짜) */}
           <InvoiceHeader invoice={invoice} />

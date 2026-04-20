@@ -18,10 +18,14 @@ export function InvoiceActions({ invoiceId }: InvoiceActionsProps) {
           {/* URL 복사 버튼 (기존 컴포넌트 재사용) */}
           <CopyUrlButton url={invoicePath} className="w-full sm:w-auto" />
 
-          {/* PDF 다운로드 버튼 */}
+          {/* PDF 다운로드 버튼: aria-label로 동작을 명확히 전달 */}
           <Button asChild className="w-full sm:w-auto">
-            <a href={`/api/invoice/${invoiceId}/pdf`} download>
-              <Download className="mr-2 h-4 w-4" />
+            <a
+              href={`/api/invoice/${invoiceId}/pdf`}
+              download
+              aria-label="PDF로 다운로드"
+            >
+              <Download className="mr-2 h-4 w-4" aria-hidden="true" />
               PDF 다운로드
             </a>
           </Button>

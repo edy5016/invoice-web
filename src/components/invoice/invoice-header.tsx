@@ -51,8 +51,11 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
             <Hash className="h-4 w-4" />
             <span className="font-mono">{invoiceNumber}</span>
           </div>
-          {/* 상태 배지 */}
-          <Badge variant={getStatusVariant(status)}>
+          {/* 상태 배지: aria-label로 스크린리더에게 상태 정보를 명확히 전달 */}
+          <Badge
+            variant={getStatusVariant(status)}
+            aria-label={`견적서 상태: ${getStatusLabel(status)}`}
+          >
             {getStatusLabel(status)}
           </Badge>
         </div>
@@ -63,18 +66,20 @@ export function InvoiceHeader({ invoice }: InvoiceHeaderProps) {
         {/* 발행일 및 유효기간 */}
         <div className="flex flex-wrap gap-6 text-sm">
           <div className="text-muted-foreground flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
+            <CalendarDays className="h-4 w-4" aria-hidden="true" />
             <span>발행일:</span>
-            <span className="text-foreground font-medium">
+            {/* time 태그로 기계가 읽을 수 있는 날짜 형식(dateTime)을 병기 */}
+            <time dateTime={issueDate} className="text-foreground font-medium">
               {formattedIssueDate}
-            </span>
+            </time>
           </div>
           <div className="text-muted-foreground flex items-center gap-2">
-            <CalendarDays className="h-4 w-4" />
+            <CalendarDays className="h-4 w-4" aria-hidden="true" />
             <span>유효기간:</span>
-            <span className="text-foreground font-medium">
+            {/* time 태그로 기계가 읽을 수 있는 날짜 형식(dateTime)을 병기 */}
+            <time dateTime={dueDate} className="text-foreground font-medium">
               {formattedDueDate}
-            </span>
+            </time>
           </div>
         </div>
       </CardContent>

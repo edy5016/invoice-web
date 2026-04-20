@@ -19,19 +19,33 @@ export function InvoiceItemsTable({ items }: InvoiceItemsTableProps) {
       <CardContent>
         {/* 데스크톱 테이블 뷰 */}
         <div className="hidden md:block">
-          <table className="w-full text-sm">
+          {/* aria-label: 스크린리더에서 테이블 용도를 명확히 전달 */}
+          <table className="w-full text-sm" aria-label="견적 항목 목록">
             <thead>
               <tr className="border-b">
-                <th className="text-muted-foreground pb-3 text-left font-semibold">
+                {/* scope="col": 각 헤더가 열 방향 헤더임을 명시 */}
+                <th
+                  scope="col"
+                  className="text-muted-foreground pb-3 text-left font-semibold"
+                >
                   항목명
                 </th>
-                <th className="text-muted-foreground pb-3 text-right font-semibold">
+                <th
+                  scope="col"
+                  className="text-muted-foreground pb-3 text-right font-semibold"
+                >
                   수량
                 </th>
-                <th className="text-muted-foreground pb-3 text-right font-semibold">
+                <th
+                  scope="col"
+                  className="text-muted-foreground pb-3 text-right font-semibold"
+                >
                   단가
                 </th>
-                <th className="text-muted-foreground pb-3 text-right font-semibold">
+                <th
+                  scope="col"
+                  className="text-muted-foreground pb-3 text-right font-semibold"
+                >
                   금액
                 </th>
               </tr>
@@ -70,9 +84,18 @@ export function InvoiceItemsTable({ items }: InvoiceItemsTableProps) {
         </div>
 
         {/* 모바일 카드 뷰 */}
-        <div className="block space-y-3 md:hidden">
+        {/* role="list": 카드 목록을 리스트로 명시하여 스크린리더에서 목록 구조 전달 */}
+        <div
+          className="block space-y-3 md:hidden"
+          role="list"
+          aria-label="견적 항목 목록"
+        >
           {items.map(item => (
-            <div key={item.id} className="rounded-lg border p-3">
+            <div
+              key={item.id}
+              className="rounded-lg border p-3"
+              role="listitem"
+            >
               {/* 항목명 */}
               <p className="font-medium">{item.name}</p>
               {/* 수량 × 단가 = 금액 */}

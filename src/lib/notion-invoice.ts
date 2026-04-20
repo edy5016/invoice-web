@@ -1,5 +1,6 @@
 import { APIResponseError } from '@notionhq/client'
 import type { GetPageResponse } from '@notionhq/client/build/src/api-endpoints'
+import { unstable_cache } from 'next/cache'
 import { getNotionClient } from './notion'
 import type { Invoice, InvoiceItem, InvoiceStatus } from '@/types/invoice'
 
@@ -130,21 +131,43 @@ async function parseNotionInvoice(page: FullPage): Promise<Invoice> {
 // 공개 API
 // ============================================================
 
-export async function getInvoiceById(id: string): Promise<Invoice | null> {
-  try {
-    const notion = getNotionClient()
-    const page = await notion.pages.retrieve({ page_id: id })
+// Rate Limit 재시도를 포함한 내부 구현 함수
+async function getInvoiceByIdUncached(id: string): Promise<Invoice | null> {
+  // 지수 백오프 재시도 설정: 최대 3회, 1초 → 2초 → 4초 대기
+  const MAX_RETRIES = 3
+  let attempt = 0
 
-    if (!isFullPage(page)) return null
+  while (true) {
+    try {
+      const notion = getNotionClient()
+      const page = await notion.pages.retrieve({ page_id: id })
 
-    return await parseNotionInvoice(page)
-  } catch (error) {
-    if (error instanceof APIResponseError) {
-      if (error.status === 404) return null
-      if (error.status === 401) throw new NotionAuthError()
-      if (error.status === 429) throw new NotionRateLimitError()
-      if (error.status >= 500) throw new NotionServerError(error.status)
+      if (!isFullPage(page)) return null
+
+      return await parseNotionInvoice(page)
+    } catch (error) {
+      if (error instanceof APIResponseError) {
+        if (error.status === 404) return null
+        if (error.status === 401) throw new NotionAuthError()
+        if (error.status >= 500) throw new NotionServerError(error.status)
+
+        // 429 Rate Limit: 최대 3회 재시도 후 포기
+        if (error.status === 429) {
+          if (attempt >= MAX_RETRIES) throw new NotionRateLimitError()
+          const delay = 1000 * Math.pow(2, attempt) // 1초, 2초, 4초
+          await new Promise(resolve => setTimeout(resolve, delay))
+          attempt++
+          continue
+        }
+      }
+      throw error
     }
-    throw error
   }
 }
+
+// unstable_cache로 래핑하여 5분(300초) 캐싱 적용
+export const getInvoiceById = unstable_cache(
+  getInvoiceByIdUncached,
+  ['invoice'],
+  { revalidate: 300, tags: ['invoice'] }
+)
