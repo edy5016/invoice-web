@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { FileText, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { CopyUrlButton } from '@/components/copy-url-button'
+import { ThemeToggle } from '@/components/theme-toggle'
 import { getInvoiceById } from '@/lib/mock-data'
 import { InvoiceHeader } from '@/components/invoice/invoice-header'
 import { InvoiceParties } from '@/components/invoice/invoice-parties'
@@ -71,8 +72,11 @@ export default async function InvoicePage({ params }: InvoicePageProps) {
               </div>
             </div>
 
-            {/* 오른쪽: URL 복사 버튼 */}
-            <CopyUrlButton url={invoicePath} />
+            {/* 오른쪽: 테마 토글 + URL 복사 버튼 */}
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <CopyUrlButton url={invoicePath} />
+            </div>
           </div>
         </div>
       </header>
