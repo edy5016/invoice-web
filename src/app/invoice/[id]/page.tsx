@@ -4,7 +4,12 @@ import { FileText, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { CopyUrlButton } from '@/components/copy-url-button'
 import { ThemeToggle } from '@/components/theme-toggle'
-import { getInvoiceById } from '@/lib/mock-data'
+import {
+  getInvoiceById,
+  NotionAuthError,
+  NotionRateLimitError,
+  NotionServerError,
+} from '@/lib/notion-invoice'
 import { InvoiceHeader } from '@/components/invoice/invoice-header'
 import { InvoiceParties } from '@/components/invoice/invoice-parties'
 import { InvoiceItemsTable } from '@/components/invoice/invoice-items-table'
@@ -21,24 +26,35 @@ export async function generateMetadata({
   params,
 }: InvoicePageProps): Promise<Metadata> {
   const { id } = await params
-  const invoice = getInvoiceById(id)
-
-  if (!invoice) {
+  try {
+    const invoice = await getInvoiceById(id)
+    if (!invoice) return { title: '견적서를 찾을 수 없음' }
     return {
-      title: '견적서를 찾을 수 없음',
+      title: `${invoice.invoiceNumber} - ${invoice.title}`,
+      description: '견적서를 조회하고 PDF로 다운로드하세요.',
     }
-  }
-
-  return {
-    title: `${invoice.invoiceNumber} - ${invoice.title}`,
-    description: '견적서를 조회하고 PDF로 다운로드하세요.',
+  } catch {
+    return { title: '견적서 오류' }
   }
 }
 
 // 견적서 조회 페이지 (서버 컴포넌트)
 export default async function InvoicePage({ params }: InvoicePageProps) {
   const { id } = await params
-  const invoice = getInvoiceById(id)
+
+  let invoice
+  try {
+    invoice = await getInvoiceById(id)
+  } catch (error) {
+    if (
+      error instanceof NotionAuthError ||
+      error instanceof NotionRateLimitError ||
+      error instanceof NotionServerError
+    ) {
+      throw error
+    }
+    throw error
+  }
 
   // 견적서를 찾지 못하면 404 처리
   if (!invoice) {
