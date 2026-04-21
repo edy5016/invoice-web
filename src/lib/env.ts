@@ -12,6 +12,9 @@ const envSchema = z.object({
   ADMIN_ACCESS_KEY: z.string().min(1).optional(),
   // 사이트 기본 URL (링크 공유 기능에 사용)
   NEXT_PUBLIC_SITE_URL: z.string().optional(),
+  // 이메일 발송 (Resend API)
+  RESEND_API_KEY: z.string().optional(),
+  RESEND_FROM_EMAIL: z.string().email().optional(),
 })
 
 // 환경 변수 파싱 및 유효성 검사
@@ -21,6 +24,8 @@ export const env = envSchema.parse({
   NOTION_DATABASE_ID: process.env.NOTION_DATABASE_ID,
   ADMIN_ACCESS_KEY: process.env.ADMIN_ACCESS_KEY,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
 })
 
 export type Env = z.infer<typeof envSchema>
