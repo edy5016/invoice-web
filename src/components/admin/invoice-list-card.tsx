@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { InvoiceStatusBadge } from '@/components/admin/invoice-status-badge'
-import { CopyInvoiceLinkButton } from '@/components/admin/copy-invoice-link-button'
+import { ShareInvoiceButton } from '@/components/admin/share-invoice-button'
 import type { InvoiceListItem } from '@/types/invoice'
 
 interface InvoiceListCardProps {
@@ -58,9 +58,12 @@ export function InvoiceListCard({ items }: InvoiceListCardProps) {
                 </span>
               </div>
             </div>
-            {/* 링크 복사 버튼 */}
+            {/* 공유 버튼 */}
             <div className="mt-3 flex justify-end">
-              <CopyInvoiceLinkButton invoiceId={item.id} />
+              <ShareInvoiceButton
+                invoiceId={item.id}
+                invoiceNumber={item.invoiceNumber}
+              />
             </div>
           </CardContent>
         </Card>

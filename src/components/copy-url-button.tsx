@@ -13,15 +13,18 @@ interface CopyUrlButtonProps {
 export function CopyUrlButton({ url, className }: CopyUrlButtonProps) {
   const [copied, setCopied] = useState(false)
 
+  // 상대경로인 경우 현재 origin을 붙여 전체 URL로 변환
+  const fullUrl = url.startsWith('/') ? `${window.location.origin}${url}` : url
+
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(fullUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
       // clipboard API 실패 시 fallback
       const input = document.createElement('input')
-      input.value = url
+      input.value = fullUrl
       document.body.appendChild(input)
       input.select()
       document.execCommand('copy')

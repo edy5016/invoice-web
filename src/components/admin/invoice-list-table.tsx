@@ -8,7 +8,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { InvoiceStatusBadge } from '@/components/admin/invoice-status-badge'
-import { CopyInvoiceLinkButton } from '@/components/admin/copy-invoice-link-button'
+import { ShareInvoiceButton } from '@/components/admin/share-invoice-button'
 import type { InvoiceListItem } from '@/types/invoice'
 
 interface InvoiceListTableProps {
@@ -42,7 +42,7 @@ export function InvoiceListTable({ items }: InvoiceListTableProps) {
             <TableHead>발행일</TableHead>
             <TableHead>상태</TableHead>
             <TableHead className="text-right">금액</TableHead>
-            <TableHead className="w-12 text-center">액션</TableHead>
+            <TableHead className="w-12 text-center">공유</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -65,9 +65,12 @@ export function InvoiceListTable({ items }: InvoiceListTableProps) {
               <TableCell className="text-right font-medium">
                 {formatCurrency(item.totalAmount)}
               </TableCell>
-              {/* 링크 복사 버튼 */}
+              {/* 공유 버튼 */}
               <TableCell className="text-center">
-                <CopyInvoiceLinkButton invoiceId={item.id} />
+                <ShareInvoiceButton
+                  invoiceId={item.id}
+                  invoiceNumber={item.invoiceNumber}
+                />
               </TableCell>
             </TableRow>
           ))}
