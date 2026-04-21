@@ -7,8 +7,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 const FILTER_TABS = [
   { label: '전체', value: '' },
   { label: '대기', value: '대기' },
-  { label: '확정', value: '확정' },
-  { label: '취소', value: '취소' },
+  { label: '승인', value: '승일' },
+  { label: '거절', value: '거절' },
+  { label: 'To-do', value: 'To-do' },
+  { label: 'In progress', value: 'In progress' },
+  { label: 'Complete', value: 'Complete' },
 ] as const
 
 // 견적서 상태 필터 탭 컴포넌트

@@ -1,6 +1,4 @@
 import { unstable_cache } from 'next/cache'
-import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
-import { getNotionClient } from '@/lib/notion'
 import { env } from '@/lib/env'
 import type {
   InvoiceListFilter,
@@ -14,18 +12,52 @@ function extractRichText(
   return richText?.map(t => t.plain_text).join('') ?? ''
 }
 
-function isFullPage(page: unknown): page is PageObjectResponse {
-  return (
-    typeof page === 'object' &&
-    page !== null &&
-    'properties' in page &&
-    'parent' in page
-  )
+interface NotionProperty {
+  title?: Array<{ plain_text: string }>
+  rich_text?: Array<{ plain_text: string }>
+  date?: { start: string }
+  status?: { name: string }
+  number?: number
 }
 
-// notion.search를 사용하여 데이터베이스 페이지 목록 조회
-// @notionhq/client v5에서 databases.query가 dataSources.query로 대체되었으나
-// 기존 Notion DB는 search API를 통해 접근 가능
+interface NotionPage {
+  id: string
+  properties: Record<string, NotionProperty>
+}
+
+interface NotionQueryResponse {
+  results: NotionPage[]
+  next_cursor: string | null
+  has_more: boolean
+}
+
+// Notion REST API POST /databases/{id}/query 직접 호출
+// @notionhq/client v5에서 databases.query가 제거됐으므로 fetch 사용
+async function queryDatabase(
+  databaseId: string,
+  body: Record<string, unknown>
+): Promise<NotionQueryResponse> {
+  const apiKey = process.env.NOTION_API_KEY
+  const res = await fetch(
+    `https://api.notion.com/v1/databases/${databaseId}/query`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28',
+      },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    }
+  )
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Notion API error ${res.status}: ${err}`)
+  }
+  return res.json() as Promise<NotionQueryResponse>
+}
+
 async function getInvoiceListUncached(
   filter: InvoiceListFilter
 ): Promise<InvoiceListResponse> {
@@ -35,36 +67,23 @@ async function getInvoiceListUncached(
     return { items: [], nextCursor: null, hasMore: false }
   }
 
-  const notion = getNotionClient()
-
-  const response = await notion.search({
-    filter: { property: 'object', value: 'page' },
-    sort: { timestamp: 'last_edited_time', direction: 'descending' },
+  const body: Record<string, unknown> = {
+    sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
     page_size: filter.pageSize ?? 20,
-    ...(filter.cursor && { start_cursor: filter.cursor }),
-  })
+  }
 
-  // 해당 데이터베이스 소속 페이지만 필터링
-  const normalizedDbId = databaseId.replace(/-/g, '')
-  const dbPages = response.results.filter(page => {
-    if (!isFullPage(page)) return false
-    const parent = page.parent
-    if (parent.type !== 'database_id') return false
-    return parent.database_id.replace(/-/g, '') === normalizedDbId
-  }) as PageObjectResponse[]
+  if (filter.cursor) {
+    body.start_cursor = filter.cursor
+  }
 
-  // 상태 필터 적용 (클라이언트 사이드)
-  const filteredPages = filter.status
-    ? dbPages.filter(page => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const props = page.properties as Record<string, any>
-        return props['상태']?.status?.name === filter.status
-      })
-    : dbPages
+  if (filter.status) {
+    body.filter = { property: '상태', status: { equals: filter.status } }
+  }
 
-  const items: InvoiceListItem[] = filteredPages.map(page => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const props = page.properties as Record<string, any>
+  const response = await queryDatabase(databaseId, body)
+
+  const items: InvoiceListItem[] = response.results.map(page => {
+    const props = page.properties
 
     const invoiceNumber =
       extractRichText(props['견적서 번호']?.title) || page.id
@@ -85,12 +104,11 @@ async function getInvoiceListUncached(
 
   return {
     items,
-    nextCursor: response.next_cursor,
-    hasMore: response.has_more,
+    nextCursor: response.next_cursor ?? null,
+    hasMore: response.has_more ?? false,
   }
 }
 
-// filter를 인자로 전달하여 Next.js가 자동으로 캐시 키를 생성하도록 함
 const getInvoiceListCached = unstable_cache(
   getInvoiceListUncached,
   ['invoice-list'],
@@ -99,3 +117,43 @@ const getInvoiceListCached = unstable_cache(
 
 export const getInvoiceList = (filter: InvoiceListFilter = {}) =>
   getInvoiceListCached(filter)
+
+// 대시보드용: 상태별 집계 조회
+export async function getInvoiceSummary(): Promise<{
+  total: number
+  pending: number
+  confirmed: number
+  cancelled: number
+}> {
+  const databaseId = env.NOTION_DATABASE_ID
+  if (!databaseId) return { total: 0, pending: 0, confirmed: 0, cancelled: 0 }
+
+  const fetchCount = async (status?: string): Promise<number> => {
+    let count = 0
+    let cursor: string | undefined
+
+    do {
+      const body: Record<string, unknown> = {
+        page_size: 100,
+        ...(cursor && { start_cursor: cursor }),
+        ...(status && {
+          filter: { property: '상태', status: { equals: status } },
+        }),
+      }
+      const res = await queryDatabase(databaseId, body)
+      count += res.results.length
+      cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined
+    } while (cursor)
+
+    return count
+  }
+
+  const [total, pending, confirmed, cancelled] = await Promise.all([
+    fetchCount(),
+    fetchCount('대기'),
+    fetchCount('승일'),
+    fetchCount('거절'),
+  ])
+
+  return { total, pending, confirmed, cancelled }
+}

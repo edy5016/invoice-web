@@ -59,3 +59,15 @@ export async function POST(request: NextRequest) {
 
   return response
 }
+
+// DELETE /api/admin/auth - 로그아웃 (세션 쿠키 삭제)
+export async function DELETE() {
+  const response = NextResponse.json({ ok: true }, { status: 200 })
+  response.cookies.set('admin-session', '', {
+    httpOnly: true,
+    maxAge: 0,
+    sameSite: 'lax',
+    path: '/',
+  })
+  return response
+}

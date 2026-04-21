@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,7 +25,6 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 // 관리자 로그인 페이지 (독립 레이아웃)
 export default function AdminLoginPage() {
-  const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 
@@ -48,8 +46,8 @@ export default function AdminLoginPage() {
       })
 
       if (response.ok) {
-        // 인증 성공 시 견적서 목록으로 이동
-        router.push('/admin/invoices')
+        // 전체 페이지 이동으로 어드민 레이아웃(사이드바)을 새로 렌더링
+        window.location.href = '/admin/invoices'
       } else {
         const data = (await response.json()) as { error?: string }
         setServerError(data.error ?? '인증에 실패했습니다.')
